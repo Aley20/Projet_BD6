@@ -1,0 +1,148 @@
+
+1) Sélectionner le nom du groupe et le nom du genre des morceaux
+   de genre Pop : (porte sur au moins trois tables )
+
+    SELECT DISTINCT g.nom AS nom_groupe
+        FROM groupe g,genre ge, morceaux m WHERE
+        m.id_groupe = g.id_groupe AND ge.id_genre = m.id_genre
+        AND ge.nom='Pop';
+
+
+2) Sélectionner les utilisateurs qui ont des amis qui ont le même type d'utilisateur qu'eux:
+   (’auto jointure’, porte sur au moins trois tables )
+   SELECT DISTINCT u1.nom, u1.prenom FROM utilisateur u1,amis a, utilisateur u2 WHERE 
+   u1.id_utilisateur = a.id_utilisateur1 AND a.id_utilisateur2 = u2.id_utilisateur
+   AND u1.type_utilisateur = u2.type_utilisateur;
+
+3) Sélectionner les numéro et noms des morceaux de Rihanna : (Sous-requête dans le FROM,requete corele )
+
+   SELECT m.numero, m.nom FROM morceaux m WHERE m.id_groupe IN (SELECT g.id_groupe FROM
+   groupe g WHERE g.nom='Rihanna');
+
+4) Sélectionner les groupes qui ont reçu un avis égal à 10 :(Sous-requête dans le WHERE, requete corele)
+   
+   SELECT * FROM groupe WHERE id_groupe IN (SELECT id_groupe FROM avis WHERE note = 10);
+
+5) Nom et prenom des utilisateurs qui ont au moins un suivi et deux amis:
+   (porte sur au moins trois tables, deux agrégats nécessitant GROUP BY et HAVING,
+   une requête impliquant le calcul de deux agrégats)
+
+  SELECT u.nom, u.prenom FROM utilisateur u,suivi s, amis a 
+        WHERE u.id_utilisateur=s.id_utilisateur AND 
+        u.id_utilisateur=a.id_utilisateur1 OR 
+        u.id_utilisateur=a.id_utilisateur2 GROUP BY u.nom, 
+        u.prenom HAVING COUNT(DISTINCT s.id_utilisateur)>0 AND 
+        COUNT(DISTINCT a.id_utilisateur1)>=2;
+
+6) Sélectionner les noms des l'utilisateurs et les date du concert à venir 
+   pour les utilisateurs qui ont organisé un concert:(une jointure externe LEFT JOIN)
+
+   SELECT utilisateur.nom, concert_a_venir.date_concert FROM utilisateur
+   LEFT JOIN concert_a_venir ON utilisateur.id_utilisateur = concert_a_venir.organise
+   WHERE concert_a_venir.date_concert IS NOT NULL;
+
+7) Sélectionner les identifiants des utilisateurs  qui ont une playlist avec un id_playlist égal à 2.:
+   ( requêtes équivalentes exprimant une condition de totalité avec requête corrélé)
+
+   SELECT id_utilisateur FROM utilisateur u WHERE EXISTS (SELECT * FROM playlist p
+   WHERE p.id_utilisateur = u.id_utilisateur AND p.id_playlist=2);
+
+8) Idem que 7 (requêtes équivalentes exprimant une condition de totalité avec de l'agrégation):
+
+   SELECT p.id_utilisateur FROM playlist p WHERE p.id_playlist = 2 
+   GROUP BY p.id_utilisateur HAVING COUNT(*) = (SELECT COUNT(*) FROM playlist
+   WHERE id_playlist = 2);
+
+9) Sélectionner l'identifiant de tag dont le lieu est Paris.
+   (requête corrélé, requêtes qui renverraient le même résultat si vos tables ne contenaient pas de nulls)
+
+   SELECT t.id FROM tag t WHERE t.id_lieu IN (SELECT l.id_lieu FROM lieu l
+   WHERE l.id_lieu IS NOT NULL AND l.ville='Paris');
+
+10) Idem que 9(requête corrélé, requêtes qui renverraient le même résultat si vos tables ne contenaient pas de nulls,).
+
+   SELECT t.id FROM tag t WHERE EXISTS (SELECT * FROM lieu l
+   WHERE l.id_lieu = t.id_lieu AND l.id_lieu IS NOT NULL AND l.ville='Paris');
+
+11) Sélectionner le nom des groupe qui ont tagués des videos-photos d'identifiant 35:
+   (requête qui porte sur au moins trois tables)
+
+   SELECT g.nom FROM groupe g, tag t, video_photo v WHERE g.id_groupe=t.id_groupe 
+   AND t.id_video=v.id_publication AND t.id_video=35; 
+
+12) Sélectionner les noms des groupes qui sont associés au sous_genre 'Flamenco' :
+    (requête qui porte sur au moins trois tables)
+
+   SELECT g.nom FROM groupe g,genre ge,sous_genre_de s, morceaux m 
+   WHERE s.id_genre=ge.id_genre AND m.id_groupe=g.id_groupe AND m.id_genre=ge.id_genre 
+   AND ge.nom='Flamenco';
+
+13) Sélectionner la date des concert qui auront lieu à Venice :
+   (une jointure externe RIGHT JOIN)
+
+   SELECT c.date_concert FROM concert_a_venir c RIGHT JOIN lieu l 
+   ON c.id_lieu = l.id_lieu WHERE l.ville = 'Venice';
+
+14) Sélectionner les abbonnee et abbonnement de l'utilisateur ayant le plus d'abbonnee et abbonnement:
+   (requête utilisant 3 vues)
+
+   CREATE VIEW utilisateur_max_abonnements AS
+   SELECT u.id_utilisateur, u.nom, u.prenom
+   FROM utilisateur u WHERE u.nb_abonne = (SELECT MAX(nb_abonne) FROM utilisateur)
+   AND u.nb_abonnement = (SELECT MAX(nb_abonnement) FROM utilisateur);
+
+   CREATE VIEW abonnes_utilisateur_max AS SELECT u.id_utilisateur,
+   a.id_utilisateur AS id_abonne, a.nom AS abonne_nom,
+   a.prenom AS abonne_prenom FROM utilisateur_max_abonnements u
+   LEFT JOIN amis am ON u.id_utilisateur = am.id_utilisateur1
+   LEFT JOIN utilisateur a ON am.id_utilisateur2 = a.id_utilisateur;
+
+   CREATE VIEW abonnement_utilisateur_max AS SELECT u.id_utilisateur,
+   s.id_suivi AS id_abonnement, suivi.nom AS abonnement_nom,
+   suivi.prenom AS abonnement_prenom FROM utilisateur_max_abonnements u
+   JOIN suivi s ON u.id_utilisateur = s.id_utilisateur
+   JOIN utilisateur suivi ON s.id_suivi = suivi.id_utilisateur;
+
+   SELECT id_abonne, abonne_nom, abonne_prenom,id_abonnement, abonnement_nom, 
+   abonnement_prenom FROM abonnes_utilisateur_max, abonnement_utilisateur_max;
+   
+   SELECT abonnement_nom, abonnement_prenom, id_abonnement
+   FROM suivi_utilisateur_max;
+
+15) compter le nombre d'utilisateur de type 'personne' qui ont une playlist 
+   (requete correle)
+
+   SELECT COUNT(*) AS total FROM utilisateur u WHERE u.type_utilisateur = 'personne'
+   AND u.id_utilisateur IN (SELECT p.id_utilisateur FROM playlist p);
+
+16) compter le nombre d'utilisateur de type 'association' qui ont une playlist 
+   (requete correle)
+
+   SELECT COUNT(*) AS total FROM utilisateur u WHERE u.type_utilisateur = 'association'
+   AND u.id_utilisateur IN (SELECT p.id_utilisateur FROM playlist p);
+
+17) compter le nombre d'utilisateur de type 'groupe' qui ont une playlist 
+   (requete correle)
+
+   SELECT COUNT(*) AS total FROM utilisateur u WHERE u.type_utilisateur = 'groupe'
+   AND u.id_utilisateur IN (SELECT p.id_utilisateur FROM playlist p);
+
+18) Donner la note de l'avis de l'utilisateur de type groupe et le nom du groupe de l'utilisateur:
+   (requete qui porte sur au moins 3 tables)
+
+   SELECT a.note, g.nom FROM avis a JOIN groupe g ON a.id_groupe = g.id_groupe
+   JOIN utilisateur u ON a.id_utilisateur = u.id_utilisateur
+   WHERE u.type_utilisateur = 'groupe';
+
+19) Sélectionner la ville du nb_participant maximale dans un concert passe:
+    (jointure externe FULL JOIN) 
+
+   SELECT l.ville FROM concert_passe cp FULL JOIN lieu l ON 
+   cp.id_lieu = l.id_lieu WHERE cp.nb_participant = (SELECT MAX(nb_participant)
+   FROM concert_passe);
+
+20) Sélectionner la ville du nb_participant minimale dans un concert passe:
+   (jointure externe FULL JOIN) 
+
+   SELECT l.ville FROM concert_passe cp FULL JOIN lieu l ON cp.id_lieu = l.id_lieu
+   WHERE cp.nb_participant = (SELECT MIN(nb_participant) FROM concert_passe);
